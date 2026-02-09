@@ -1,0 +1,87 @@
+# dt-cloudflare-images
+
+> Digital twin of the Cloudflare Images API for local testing. Drop-in replacement that mimics the real API surface.
+
+## Base URL
+
+All image API routes: `{BASE_URL}/accounts/{account_id}/images/...`
+
+Default: `http://localhost:8080`
+
+## Authentication
+
+Required on all `/accounts/...` routes. Use one of:
+
+- `Authorization: Bearer <token>`
+- `X-Auth-Key: <token>` + `X-Auth-Email: <email>`
+
+Set `DT_AUTH_TOKEN` env var to enforce a specific token. Empty = accept any.
+
+## Endpoints
+
+### Images V1
+- POST /accounts/{account_id}/images/v1 — upload image (multipart: file, url, or direct upload)
+- GET /accounts/{account_id}/images/v1 — list images (query: page, per_page)
+- GET /accounts/{account_id}/images/v1/{image_id} — get image details
+- PATCH /accounts/{account_id}/images/v1/{image_id} — update metadata (JSON body: metadata, requireSignedURLs)
+- DELETE /accounts/{account_id}/images/v1/{image_id} — delete image
+- GET /accounts/{account_id}/images/v1/{image_id}/blob — download original bytes
+
+### Images V2
+- GET /accounts/{account_id}/images/v2 — list images with continuation_token cursor
+
+### Direct Upload
+- POST /accounts/{account_id}/images/v2/direct_upload — create direct upload URL (returns uploadURL + id)
+- POST /upload/{upload_id} — fulfill direct upload (no auth, multipart: file)
+
+### Variants
+- POST /accounts/{account_id}/images/v1/variants — create variant (JSON body: id, options, neverRequireSignedURLs)
+- GET /accounts/{account_id}/images/v1/variants — list all variants
+- GET /accounts/{account_id}/images/v1/variants/{variant_id} — get variant
+- PATCH /accounts/{account_id}/images/v1/variants/{variant_id} — update variant
+- DELETE /accounts/{account_id}/images/v1/variants/{variant_id} — delete variant
+
+### Signing Keys
+- GET /accounts/{account_id}/images/v1/keys — list signing keys
+- PUT /accounts/{account_id}/images/v1/keys/{signing_key_name} — create signing key
+- DELETE /accounts/{account_id}/images/v1/keys/{signing_key_name} — delete signing key
+
+### Stats
+- GET /accounts/{account_id}/images/v1/stats — image usage statistics (current count + allowed)
+
+### Image Delivery
+- GET /cdn/{account_id}/{image_id}/{variant_name} — deliver transformed image (no auth)
+  - Applies variant transformations (resize, crop, etc.) to the original image
+  - When DT_ENFORCE_SIGNED_URLS=true, images with requireSignedURLs=true need ?sig={hmac_hex}&exp={unix_timestamp}
+  - Signature: HMAC-SHA256(signing_key_value, "/cdn/{account_id}/{image_id}/{variant_name}{exp}")
+  - Variants with neverRequireSignedURLs=true bypass the signature check
+
+### Health
+- GET /health — returns {"status":"ok"} (no auth)
+
+## Response Envelope
+
+All responses use Cloudflare envelope format:
+
+```json
+{"result": {...}, "success": true, "errors": [], "messages": []}
+```
+
+Error responses: `"success": false`, errors array populated with `{"code": <int>, "message": "<string>"}`.
+
+## Environment Variables
+
+- DT_LISTEN_ADDR — listen address (default: `:8080`)
+- DT_DB_PATH — SQLite database path (default: `/data/db/images.db`)
+- DT_STORAGE_PATH — image file storage root (default: `/data/images`)
+- DT_AUTH_TOKEN — required auth token, empty = accept any (default: `""`)
+- DT_BASE_URL — base URL for generated URLs (default: `http://localhost:8080`)
+- DT_IMAGE_ALLOWANCE — max images per account (default: `100000`)
+- DT_ENFORCE_SIGNED_URLS — set to "true" to enforce signed URLs on delivery (default: `""`, off)
+
+## Docker
+
+```
+docker pull ghcr.io/operomtl/dt-cf-images:latest
+docker run -p 8080:8080 -e DT_AUTH_TOKEN=my-token ghcr.io/operomtl/dt-cf-images:latest
+```

@@ -1,0 +1,24 @@
+services:
+  dt-cloudflare-images:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DT_LISTEN_ADDR=:8080
+      - DT_DB_PATH=/data/db/images.db
+      - DT_STORAGE_PATH=/data/images
+      - DT_AUTH_TOKEN=test-api-token
+      - DT_BASE_URL=http://localhost:8080
+    volumes:
+      - images-data:/data/images
+      - db-data:/data/db
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+volumes:
+  images-data:
+  db-data:
