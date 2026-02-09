@@ -127,12 +127,19 @@ expiry using a signing key's value.
 
 ## Authentication
 
-All `/accounts/...` endpoints require one of:
+All `/accounts/...` endpoints require authentication headers. Requests without them always return 401, regardless of configuration.
 
-- **Bearer token**: `Authorization: Bearer <token>`
-- **API key + email**: `X-Auth-Key: <token>` and `X-Auth-Email: <email>`
+Two header formats are accepted, matching the real Cloudflare API:
 
-When `DT_AUTH_TOKEN` is set, the provided token must match exactly. When empty, any token is accepted.
+- **API Token**: `Authorization: Bearer <token>`
+- **API Key + Email**: `X-Auth-Key: <key>` and `X-Auth-Email: <email>`
+
+Since this is a test double, both methods validate against the single `DT_AUTH_TOKEN` environment variable:
+
+| `DT_AUTH_TOKEN` | Behavior |
+|---|---|
+| Set (e.g. `my-secret`) | The token (or key) must match `DT_AUTH_TOKEN` exactly. `X-Auth-Email` must be present but its value is not checked. |
+| Empty (default) | Any value is accepted, but authentication headers must still be present. |
 
 ## Response Format
 
