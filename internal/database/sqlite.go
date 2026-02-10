@@ -32,6 +32,11 @@ func NewSQLiteDB(dsn string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 
+	// SQLite only allows one writer at a time. Limiting to a single open
+	// connection serialises all access through one handle and avoids
+	// "database is locked" errors under concurrent load.
+	db.SetMaxOpenConns(1)
+
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("run migrations: %w", err)
