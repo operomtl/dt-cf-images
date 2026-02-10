@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/leca/dt-cloudflare-images/internal/api"
 	"github.com/leca/dt-cloudflare-images/internal/config"
 	"github.com/leca/dt-cloudflare-images/internal/database"
@@ -33,6 +34,17 @@ func New(db database.Database, store storage.Storage, cfg *config.Config) *Serve
 	}
 
 	r := chi.NewRouter()
+
+	// CORS — must be before other middleware to handle preflight OPTIONS
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"Content-Length", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
